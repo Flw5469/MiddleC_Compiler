@@ -38,53 +38,42 @@ int main(){
 
   string input[N] = {"n", "n", "n","n", "n", "n","n", "n", "a","v"};
 
-  for (int i=0;i<N;i++){
-    for (int j=0;j<R;j++){
-      for (int k=0;k<rules[j].second.size();k++){
-        if (rules[j].second[k][0]==input[i]){
-          P[1][i][j]=true;
-          cout<<"matching: "<< input[i]<<endl;
+// Terminal productions
+for (int s = 0; s < N; s++) {
+    for (int v = 0; v < R; v++) {
+        for (const auto& rhs : rules[v].second) {
+            if (rhs.size() == 1 && rhs[0] == input[s]) {
+                P[0][s][v] = true;  // Length 1, starting at position s
+                cout << "Terminal match: " << input[s] << " as " << rules[v].first << endl;
+            }
         }
-      }
     }
-  }
+}
 
-  for (int l = 1; l<N;l++){
-      for (int s = 0; s<= N-l-1;s++){
-        for (int p = 0; p<=l-1;p++){
-          // cout<< "checking" << p<<" "<<s<<"    and    ";
-          // cout<< "checking" << l-p<<" "<<s+p<<endl;
-
-      for (int i=0;i<R;i++){
-      for (int k=0;k<rules[i].second.size();k++){
-        if (rules[i].second[k].size()!=2) {
-          continue;
+// Binary productions
+for (int l = 1; l < N; l++) {          // Length-1 of span (0-indexed)
+    for (int s = 0; s < N-l; s++) {    // Start of span (0-indexed)
+        for (int p = 0; p < l; p++) {  // Partition point (0-indexed)
+            for (int a = 0; a < R; a++) {
+                for (const auto& rhs : rules[a].second) {
+                    if (rhs.size() == 2) {
+                        int b = m[rhs[0]];  // Non-terminal index for first part 
+                        int c = m[rhs[1]];  // Non-terminal index for second part
+                        
+                        if (P[p][s][b] && P[l-p-1][s+p+1][c]) {
+                            P[l][s][a] = true;
+                            triplet<int> path = {p, b, c};
+                            back[l][s][a].push(path);
+                            cout << "Binary match at [" << l << "," << s << "," << a << "] " 
+                                 << "using partition " << p << " with " 
+                                 << rules[b].first << " and " << rules[c].first << endl;
+                        }
+                    }
+                }
+            }
         }
-        else {
-          string first = rules[i].second[k][0];
-          string second = rules[i].second[k][1];
-
-          // cout<< "checking" << p<<" "<<s<<" "<<m[first]<<"    and    ";
-          // cout<< "checking" << l-p<<" "<<s+p<<" "<<m[second]<<endl;
-
-          if (P[p][s][m[first]] && P[l-p-1][s+p+1][m[second]]){
-            P[l][s][i] = true;
-            // cout<<"YES!"<<endl;
-            //cout<<"true for "<<l<<" "<<s<<" "<<i<<endl;
-            struct triplet<int> path; path.first = l; path.second = m[first]; path.third = m[second];
-            back[l][s][i].push(path);
-            cout<<"setting answer for "<<l<<" "<<s<<" "<<i<<" "<<path.first<<" "<<path.second<<" "<<path.third<<endl;
-          } else {
-            //cout<<"false for"<<l<<" "<<s<<" "<<i<<endl;
-          }
-        }
-      }
-
-          
-          }
-        }
-      }
-  }
+    }
+}
 
   cout<<"answer: "<<P[N-1][0][0]<<endl;
   if (P[N-1][0][0]) cout<<"YES\n"; else cout<<"NO\n"<<endl;
