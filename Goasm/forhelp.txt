@@ -1,0 +1,11 @@
+The help file is a combined help file "GoAsm.chm".  If you find that
+you cannot open this, it may be that the file is blocked for security
+reasons by the system.  Try right clicking the file and unblocking it
+in "properties".
+
+If you have an early version of Windows, you won't be able to read  
+GoAsm.chm without the latest version of help.  You can get this by 
+running the Microsoft self-executing file Hhupd.exe. This is
+available from www.microsoft.com.
+In that site just enter Hhupd.exe as a search line.
+If you still have trouble please e-mail me at info@goprog.com

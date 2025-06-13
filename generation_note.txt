@@ -1,0 +1,39 @@
+ # test.cpp:29:   int d = 6+a/b+(3+c);
+	movl	-4(%rbp), %eax	 # a, tmp89
+	cltd
+	idivl	-8(%rbp)	 # b
+ # test.cpp:29:   int d = 6+a/b+(3+c);
+	leal	6(%rax), %edx	 #, _2
+ # test.cpp:29:   int d = 6+a/b+(3+c);
+	movl	-12(%rbp), %eax	 # c, tmp90
+	addl	$3, %eax	 #, _3
+ # test.cpp:29:   int d = 6+a/b+(3+c);
+	addl	%edx, %eax	 # _2, tmp91
+	movl	%eax, -16(%rbp)	 # tmp91, d
+
+R1 default (EAP) and R2 (any other)
+
+"6","+","4","/","2","+","1","/","1" "*" "7"
+=> 
+===
+DFS left: load 6 into R1, 
+me: put 6 into stack
+DFS right: load 4 into R1, divide by 2, put into R1
+me: put 6 from stack into R2
+do operations of R1 and R2, result will be in R1
+===
+
+
+6 + 4
+-> in rule 
+expression: expression, operator_with_expression
+expression: expression, operator_with_value
+1. +4 can only be interepted as operator_with_value, because 4 is just a value, cannot convert into expression
+2. no need the excessive load :D
+
+6 + 3 * 5
+1. expression: expression, operator_with_expression is used.
+2. after 6, R1 is loaded.
+3. before going to 3*5, R1 is pushed
+4. after going to 3*5, R1 (result of 3*5) is stored to R2, since it is the second operand.
+5. after going to 3*5, previous stored R1 (result of 6) is pop back in.
