@@ -34,10 +34,9 @@ pop eax
 cdq
 idiv ebx
 mov ebx, eax
-pop eax
-add eax, ebx
 
-    
+
+
     ; Format the result string using wsprintfA (cdecl calling convention)
     push eax            ; Push the result (13)
     push msg_format     ; Push format string

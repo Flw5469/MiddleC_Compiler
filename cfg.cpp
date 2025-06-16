@@ -1,3 +1,10 @@
+//TODO right now: if condition, statement grammar
+//TODO next: define local variables on stack (store a stack of map (name to stack base ptr+x), create when enter closure, delete when leave closure)
+//TODO after: function 
+//TODO after: array and type check
+//TODO after: class
+//TODO after: sleep
+
 #include <iostream>
 #include <set>
 #include <queue>
@@ -7,13 +14,13 @@
 #include <map>
 #include <iterator>
 #include <fstream>
-
+#include <unordered_set>
 // directly implemeted from https://en.wikipedia.org/wiki/CYK_algorithm
 // make sure to convert grammar into chomsky norm form
 
 using namespace std;
 
-
+int if_used_count = 0;
 
 template <typename T>
 
@@ -45,12 +52,29 @@ pair<string, vector<vector<string>>> rules[] = {
       // {"operator:*/", { {"*"}, {"/"}}},        
       // {"null", {{" "}}}
 
+      {"S;", {{"S", ";"}}},
+      {"S", {{"S;","E"}, {"if(E)", "{S;}"}, {"V","=E"}, {"temp_statement"},
+            {"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"}, {"1"}, {"2"}, {"3"}, {"4"} , {"5"}, {"6"}, {"7"}, {"8"}
+      }},
+      {"if(E)", {{"if", "(E)"}}},
+      {"=E", {{"=","E"}}},
+      {"E;", {{"E", ";"}}},
+
+      
+      {"{S}", {{"{","S}"}}},
+      {"{S;}", {{"{","S;}"}}},
+      
+      {"S}", {{"S", "}"}}},
+      {"S;}", {{"S;", "}"}}},
+      {"S;", {{"S", ";"}}},
+
+
       {"E", {{"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"}, {"1"}, {"2"}, {"3"}, {"4"} , {"5"}, {"6"}, {"7"}, {"8"}}},
       {"+T", {{"+", "T"}}},
       {"-T", {{"-", "T"}}},
+      {"(E)", {{"(","E)"}}},
       {"E)", {{"E",")"}}},
-      {"(", {{"("}}},
-      {")", {{")"}}},
+
 
       {"*F", {{"*", "F"}}},
       {"/F", {{"/", "F"}}},
@@ -65,9 +89,21 @@ pair<string, vector<vector<string>>> rules[] = {
       {"+", {{"+"}}},
       {"-", {{"-"}}},
 
+      {"if",{{"if"}}},
+
+      {"(", {{"("}}},
+      {")", {{")"}}},
+      {"{", {{"{"}}},
+      {"}", {{"}"}}},
+      {";", {{";"}}}
+
     };
 
-string input[] = {"(","6","+","4",")","/","2","+","1","/","1", }; // no precedence = 6, precedence = 9
+string input[] = { "if", "(", "3","-","3", ")", "{" ,"5",";","}", ";"}; // no precedence = 6, precedence = 9
+//string input[] = {"3",";", "5",";"}; // no precedence = 6, precedence = 9
+
+unordered_set<string> terminators;
+
 
 const int N = size(input);  // 9
 const int R = size(rules);  // 11
@@ -195,10 +231,44 @@ start:
     }
 }
 
+bool isInteger(const string& str) {
+    if (str.empty()) return false;
+    
+    // Check if all characters are digits
+    for (char c : str) {
+        if (!isdigit(c)) return false;
+    }
+    
+    // Check if it doesn't start with zero (unless it's just "0")
+    if (str.length() > 1 && str[0] == '0') {
+        return false;
+    }
+    
+    return true;
+}
+
+// Function to check if string is a valid identifier
+bool isIdentifier(const string& str) {
+    if (str.empty()) return false;
+    
+    // Check if it starts with a number
+    if (isdigit(str[0])) return false;
+    
+    // Check if it's in the terminators set
+    if (terminators.find(str) != terminators.end()) return false;
+    
+    // Check if all characters are valid for identifier (letters, digits, underscore)
+    for (char c : str) {
+        if (!isalnum(c) && c != '_') return false;
+    }
+    
+    return true;
+}
+
 // left first DFS
 // In-order DFS traversal (left, root, right)
 // seperate the assembly generation as pre left DFS, after left DFS, after right DFS.
-void DFS(treeNode* tree, vector<string> &assembly_code) {
+void DFS(treeNode* tree, vector<string> &assembly_code, vector<map<string, string>>& variables) {
     if (tree == nullptr) {
         return;
     }
@@ -212,14 +282,38 @@ void DFS(treeNode* tree, vector<string> &assembly_code) {
       return;
     }
 
-    DFS(tree->left, assembly_code);
+
+    if (tree->currentRule.first == "{S}") {
+
+    }
+
+
+    ///////////////////////////////////
+    DFS(tree->left, assembly_code, variables);
+    /////////////////////////////////
+
+
     cout << tree->currentValue << " ";  // Print the current value
 
     if ((tree->currentRule.second[1]=="+T") || ((tree->currentRule.second[1]=="-T") || (tree->currentRule.second[1]=="*F") || (tree->currentRule.second[1]=="/F"))) {
       assembly_code.push_back("push eax");
     }
+    // handle if by increment if use count, adding a branch checking eax, jumping to the labels defined later
+    if ((tree->currentRule.second[0]=="if(E)")) {
+      if_used_count++;
+      assembly_code.push_back("cmp eax, 0             ; compare with 0");
+      assembly_code.push_back("je if_end_" + to_string(if_used_count));
+    }
 
-    DFS(tree->right, assembly_code);
+    ////////////////////////////
+    DFS(tree->right, assembly_code, variables);
+    ///////////////////////////
+
+    // handle if by adding a ending tag here
+    if ((tree->currentRule.second[0]=="if(E)")) {
+      assembly_code.push_back("if_end_" + to_string(if_used_count) + ":");
+    }
+
 
     if ((tree->currentRule.second[1]=="+T") || (tree->currentRule.second[1]=="-T") || (tree->currentRule.second[1]=="*F") || (tree->currentRule.second[1]=="/F")) {
         assembly_code.push_back("mov ebx, eax");
@@ -239,30 +333,6 @@ void DFS(treeNode* tree, vector<string> &assembly_code) {
             assembly_code.push_back("idiv ebx");      // eax = eax / ebx
         }
     }
-    
-    // // first value (know by seeing it as first character of the current rule), push previous value and load value in register
-    // if (tree->currentRule.second[0]=="value"){
-    //   assembly_code.push_back(std::string("mov eax, ") + tree->left->currentValue);
-    // }
-
-    // // do the calculation with the register and current operator_with_expression
-    // if (checkPrefix(tree->currentRule.second[1],"operator_with_expression")){
-    //     if (tree->right->left->currentValue == "+") {
-    //         assembly_code.push_back(std::string("add eax, ") + tree->right->right->currentValue);
-    //     } 
-    //     else if (tree->right->left->currentValue == "-") {
-    //         assembly_code.push_back(std::string("sub eax, ") + tree->right->right->currentValue);
-    //     } 
-    //     else if (tree->right->left->currentValue == "*") {
-    //         assembly_code.push_back(std::string("mov ebx, ") + tree->right->right->currentValue);
-    //         assembly_code.push_back("imul eax, ebx");
-    //     } 
-    //     else if (tree->right->left->currentValue == "/") {
-    //         assembly_code.push_back(std::string("mov ebx, ") + tree->right->right->currentValue);
-    //         assembly_code.push_back("xor edx, edx");  // Clear EDX for division
-    //         assembly_code.push_back("idiv ebx");      // Signed division
-    //     }
-    // }
     
     return;
 
@@ -357,7 +427,7 @@ int main(){
 for (int s = 0; s < N; s++) {
     for (int v = 0; v < R; v++) {
         for (const auto& rhs : rules[v].second) {
-            if (rhs.size() == 1 && s < N && rhs[0] == input[s]) {
+            if (rhs.size() == 1 && s < N && (rhs[0] == input[s])|| isInteger() || isIdentifier()) {
                 P[0][s][v] = true;  // Length 1, starting at position s
                 cout << "Terminal match: " << input[s] << " as " << rules[v].first << endl;
             }
@@ -408,7 +478,7 @@ for (int l = 1; l < N; l++) {          // Length of span (0-indexed)
                             }
                             cout<<endl;
                           }
-                        // } else {
+                        //  else {
                         //     for (int start = s; start<=l+s;start++){
                         //       cout<<" "<<input[start];
                         //     }
@@ -425,7 +495,7 @@ for (int l = 1; l < N; l++) {          // Length of span (0-indexed)
   cout<<"answer: "<<P[N-1][0][0]<<endl;
   if (P[N-1][0][0]) cout<<"YES\n"; else {
     cout<<"NO\n"<<endl;
-    return 0;
+    return 1;
   }
   // for (int i=0;i<N;i++){
   //   for (int j=0;j<i;j++){

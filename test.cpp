@@ -1,6 +1,6 @@
 // #include <string>
 // #include <vector>
-// #include <iostream>
+#include <iostream>
 
 // using namespace std;
 
@@ -26,5 +26,12 @@ int main(){
   // b=2;
   // c=1;
   // cin>>a>>b>>c;
-  int d = 6+2/2+(3+1);
+  // int d = 6+2/2+(3+1);
+  int k=0;
+  for (int i=0;i<100;i++){
+    for (int j=i;j<i+10;j++){
+      k++;
+    }
+  }
+  std::cout<<k;
 }
