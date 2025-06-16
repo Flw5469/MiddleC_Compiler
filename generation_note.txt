@@ -23,17 +23,5 @@ me: put 6 from stack into R2
 do operations of R1 and R2, result will be in R1
 ===
 
-
-6 + 4
--> in rule 
-expression: expression, operator_with_expression
-expression: expression, operator_with_value
-1. +4 can only be interepted as operator_with_value, because 4 is just a value, cannot convert into expression
-2. no need the excessive load :D
-
-6 + 3 * 5
-1. expression: expression, operator_with_expression is used.
-2. after 6, R1 is loaded.
-3. before going to 3*5, R1 is pushed
-4. after going to 3*5, R1 (result of 3*5) is stored to R2, since it is the second operand.
-5. after going to 3*5, previous stored R1 (result of 6) is pop back in.
+-EAP with stack and EBP to store expression's result
+-use another register to store condition's return (put it in when handling condition)

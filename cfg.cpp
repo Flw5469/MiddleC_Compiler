@@ -6,6 +6,7 @@
 #include <stack>
 #include <map>
 #include <iterator>
+#include <fstream>
 
 // directly implemeted from https://en.wikipedia.org/wiki/CYK_algorithm
 // make sure to convert grammar into chomsky norm form
@@ -47,6 +48,9 @@ pair<string, vector<vector<string>>> rules[] = {
       {"E", {{"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"}, {"1"}, {"2"}, {"3"}, {"4"} , {"5"}, {"6"}, {"7"}, {"8"}}},
       {"+T", {{"+", "T"}}},
       {"-T", {{"-", "T"}}},
+      {"E)", {{"E",")"}}},
+      {"(", {{"("}}},
+      {")", {{")"}}},
 
       {"*F", {{"*", "F"}}},
       {"/F", {{"/", "F"}}},
@@ -63,7 +67,7 @@ pair<string, vector<vector<string>>> rules[] = {
 
     };
 
-string input[] = {"6","+","4","/","2","+","1","/","1"}; // no precedence = 6, precedence = 9
+string input[] = {"(","6","+","4",")","/","2","+","1","/","1", }; // no precedence = 6, precedence = 9
 
 const int N = size(input);  // 9
 const int R = size(rules);  // 11
@@ -113,43 +117,152 @@ bool checkPrefix(const std::string& str, const std::string& prefix) {
     }
     return str.substr(0, prefix.length()) == prefix;
 }
+bool isNumber(string str) {
+    if (str.empty()) {
+        return false;
+    }
+    
+    int start = 0;
+    // Handle optional negative sign
+    if (str[0] == '-') {
+        if (str.length() == 1) {
+            return false; // Just a minus sign
+        }
+        start = 1;
+    }
+    
+    // Check if all remaining characters are digits
+    for (int i = start; i < str.length(); i++) {
+        if (!isdigit(str[i])) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+void outputAssembly(vector<string> assembly_code){
+  string asm_prefix = R"(; NASM syntax
+bits 32
+section .data
+    msg_format db "The final answer = %d", 0    ; Format string with placeholder
+    message db 32 dup(0)              ; Buffer for our formatted message
+    title db "Assembly Calculation", 0
+
+section .text
+global start
+extern _MessageBoxA@16               ; stdcall - decorated
+extern wsprintfA                     ; cdecl - no decoration
+extern _ExitProcess@4                ; stdcall - decorated
+
+start:
+    ; Perform the calculation
+)";
+  string asm_postfix = R"(
+    ; Format the result string using wsprintfA (cdecl calling convention)
+    push eax            ; Push the result (13)
+    push msg_format     ; Push format string
+    push message        ; Push destination buffer
+    call wsprintfA      ; Call wsprintfA
+    add esp, 12         ; Clean up stack (caller cleans for cdecl)
+    
+    ; Show message box with the result
+    push 0              ; MB_OK
+    push title          ; Title
+    push message        ; Our formatted message
+    push 0              ; hWnd
+    call _MessageBoxA@16
+
+
+    ; Exit program
+    push 0              ; Exit code
+    call _ExitProcess@4)";
+
+    string asm_content = asm_prefix;
+    for (auto ele : assembly_code) {
+        asm_content += "    " + ele + "\n";
+    }
+    asm_content+=asm_postfix;
+
+
+    ofstream file("output.asm");
+    if (file.is_open()) {
+        file << asm_content;
+        file.close();
+        cout << "\nAssembly code written to output.asm" << endl;
+    } else {
+        cout << "\nError: Could not create output.asm file" << endl;
+    }
+}
 
 // left first DFS
 // In-order DFS traversal (left, root, right)
+// seperate the assembly generation as pre left DFS, after left DFS, after right DFS.
 void DFS(treeNode* tree, vector<string> &assembly_code) {
     if (tree == nullptr) {
         return;
     }
+    if (tree->currentRule.second.size()==1) {
+      cout << tree->currentValue << " ";  // Print the current value
+      
+      // TODO: add a actual type check (whether it is numerical?) here
+      if (isNumber(tree->currentValue)) {
+        assembly_code.push_back("mov eax, " + tree->currentValue);
+      } 
+      return;
+    }
+
     DFS(tree->left, assembly_code);
     cout << tree->currentValue << " ";  // Print the current value
+
+    if ((tree->currentRule.second[1]=="+T") || ((tree->currentRule.second[1]=="-T") || (tree->currentRule.second[1]=="*F") || (tree->currentRule.second[1]=="/F"))) {
+      assembly_code.push_back("push eax");
+    }
+
     DFS(tree->right, assembly_code);
 
+    if ((tree->currentRule.second[1]=="+T") || (tree->currentRule.second[1]=="-T") || (tree->currentRule.second[1]=="*F") || (tree->currentRule.second[1]=="/F")) {
+        assembly_code.push_back("mov ebx, eax");
+        assembly_code.push_back("pop eax");
 
-    if (tree->currentRule.second.size()==1) return;
-    
-    // first value (know by seeing it as first character of the current rule), push previous value and load value in register
-    if (tree->currentRule.second[0]=="value"){
-      assembly_code.push_back(std::string("mov eax, ") + tree->left->currentValue);
-    }
-
-    // do the calculation with the register and current operator_with_expression
-    if (checkPrefix(tree->currentRule.second[1],"operator_with_expression")){
-        if (tree->right->left->currentValue == "+") {
-            assembly_code.push_back(std::string("add eax, ") + tree->right->right->currentValue);
-        } 
-        else if (tree->right->left->currentValue == "-") {
-            assembly_code.push_back(std::string("sub eax, ") + tree->right->right->currentValue);
-        } 
-        else if (tree->right->left->currentValue == "*") {
-            assembly_code.push_back(std::string("mov ebx, ") + tree->right->right->currentValue);
-            assembly_code.push_back("imul eax, ebx");
-        } 
-        else if (tree->right->left->currentValue == "/") {
-            assembly_code.push_back(std::string("mov ebx, ") + tree->right->right->currentValue);
-            assembly_code.push_back("xor edx, edx");  // Clear EDX for division
-            assembly_code.push_back("idiv ebx");      // Signed division
+        if (tree->currentRule.second[1] == "+T"){
+            assembly_code.push_back("add eax, ebx");  // eax = eax + ebx
+        }
+        if (tree->currentRule.second[1] == "-T"){
+            assembly_code.push_back("sub eax, ebx");  // eax = eax - ebx
+        }
+        if (tree->currentRule.second[1] == "*F"){
+            assembly_code.push_back("imul eax, ebx"); // eax = eax * ebx
+        }
+        if (tree->currentRule.second[1] == "/F"){
+            assembly_code.push_back("cdq");           // Sign extend eax to edx:eax
+            assembly_code.push_back("idiv ebx");      // eax = eax / ebx
         }
     }
+    
+    // // first value (know by seeing it as first character of the current rule), push previous value and load value in register
+    // if (tree->currentRule.second[0]=="value"){
+    //   assembly_code.push_back(std::string("mov eax, ") + tree->left->currentValue);
+    // }
+
+    // // do the calculation with the register and current operator_with_expression
+    // if (checkPrefix(tree->currentRule.second[1],"operator_with_expression")){
+    //     if (tree->right->left->currentValue == "+") {
+    //         assembly_code.push_back(std::string("add eax, ") + tree->right->right->currentValue);
+    //     } 
+    //     else if (tree->right->left->currentValue == "-") {
+    //         assembly_code.push_back(std::string("sub eax, ") + tree->right->right->currentValue);
+    //     } 
+    //     else if (tree->right->left->currentValue == "*") {
+    //         assembly_code.push_back(std::string("mov ebx, ") + tree->right->right->currentValue);
+    //         assembly_code.push_back("imul eax, ebx");
+    //     } 
+    //     else if (tree->right->left->currentValue == "/") {
+    //         assembly_code.push_back(std::string("mov ebx, ") + tree->right->right->currentValue);
+    //         assembly_code.push_back("xor edx, edx");  // Clear EDX for division
+    //         assembly_code.push_back("idiv ebx");      // Signed division
+    //     }
+    // }
     
     return;
 
@@ -347,6 +460,8 @@ for (int l = 1; l < N; l++) {          // Length of span (0-indexed)
   DFS(tree, assembly_code);
 
   printTreeValues(tree);
+
+  outputAssembly(assembly_code);
 
 
   cout<<"\nassembly code:"<<endl;

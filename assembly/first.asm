@@ -14,14 +14,28 @@ extern _ExitProcess@4                ; stdcall - decorated
 start:
     ; Perform the calculation
 mov eax, 6
-add eax, 4
-mov ebx, 2
-xor edx, edx
+push eax
+mov eax, 4
+push eax
+mov eax, 2
+mov ebx, eax
+pop eax
+cdq
 idiv ebx
-add eax, 1
-mov ebx, 1
-xor edx, edx
+mov ebx, eax
+pop eax
+add eax, ebx
+push eax
+mov eax, 1
+push eax
+mov eax, 1
+mov ebx, eax
+pop eax
+cdq
 idiv ebx
+mov ebx, eax
+pop eax
+add eax, ebx
 
     
     ; Format the result string using wsprintfA (cdecl calling convention)
