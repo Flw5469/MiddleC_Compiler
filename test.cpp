@@ -1,8 +1,8 @@
 // #include <string>
-// #include <vector>
+#include <vector>
 #include <iostream>
-
-// using namespace std;
+#include <string>
+using namespace std;
 
 // typedef struct treeNode {
 //   pair<string, vector<string>> currentRule;
@@ -20,18 +20,70 @@
 //   return 0;
 // }
 
+
+pair<string, vector<vector<string>>> rules[] = {
+
+      {"S_list_end", {{"S_list", ";"}}},
+      {"S_list", {{"S;", "S_list"}, 
+            {"S;","E"}, {"if(E)", "{S;}"}, {"temp_statement"}, {"var","identifier"},
+            {"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"}, {"value"}, {"identifier"},
+            {"identifier","=E"}, {"identifier", "+T"},{"identifier", "-T"}, {"identifier", "*F"},{"identifier", "/F"},
+      }},
+
+      {"S;", {{"S", ";"}}},
+      {"S", {{"S;","E"}, {"if(E)", "{S;}"}, {"temp_statement"}, {"var","identifier"},
+            {"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"}, {"value"}, {"identifier"},
+            {"identifier","=E"}, {"identifier", "+T"},{"identifier", "-T"}, {"identifier", "*F"},{"identifier", "/F"},
+      }},
+
+      {"if(E)", {{"if", "(E)"}}},
+      {"=E", {{"=","E"}}},
+      {"E;", {{"E", ";"}}},
+
+      
+      {"{S}", {{"{","S}"}}},
+      {"{S;}", {{"{","S;}"}}},
+      
+      {"S}", {{"S", "}"}}},
+      {"S;}", {{"S;", "}"}}},
+      {"S;", {{"S", ";"}}},
+
+
+      {"E", {{"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"}, {"value"}, {"identifier"}}},
+      {"+T", {{"+", "T"}}},
+      {"-T", {{"-", "T"}}},
+      {"(E)", {{"(","E)"}}},
+      {"E)", {{"E",")"}}},
+
+
+      {"*F", {{"*", "F"}}},
+      {"/F", {{"/", "F"}}},
+
+      {"T", {{"T","*F"},{"T","/F"}, {"(", "E)"} , {"value"}, {"identifier"}}},
+
+      {"F", {{"(", "E)"}, {"value"}, {"identifier"}}},      
+
+      {"*", {{"*"}}},
+      {"/", {{"/"}}},
+
+      {"+", {{"+"}}},
+      {"-", {{"-"}}},
+
+      {"if",{{"if"}}},
+
+      {"(", {{"("}}},
+      {")", {{")"}}},
+      {"{", {{"{"}}},
+      {"}", {{"}"}}},
+      {";", {{";"}}},
+      {"=", {{"="}}},
+
+      {"var", {{"var"}}},
+      {"identifier", {{"identifier"}}},
+    };
+ std::string input[] = {"var", "peter", ";" ,"peter", "=", "3", ";", "peter", "=", "peter", "+", "1000" , ";"
+           , "var", "peter2", ";" ,"peter2", "=", "3", ";", "peter2", "=", "peter2", "+", "1997" , ";", "peter2", "hi", "=", "peter2", "+", "1997" , ";", "peter2", "hi"};
+
 int main(){
-  // int a,b,c;
-  // a = 2;
-  // b=2;
-  // c=1;
-  // cin>>a>>b>>c;
-  // int d = 6+2/2+(3+1);
-  int k=0;
-  for (int i=0;i<100;i++){
-    for (int j=i;j<i+10;j++){
-      k++;
-    }
-  }
-  std::cout<<k;
+  cout<<input[0]<<endl;
 }

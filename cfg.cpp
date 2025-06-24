@@ -1,9 +1,6 @@
-//TODO right now: if condition, statement grammar
-//TODO next: define local variables on stack (store a stack of map (name to stack base ptr+x), create when enter closure, delete when leave closure)
-//TODO after: function 
 //TODO after: array and type check
-//TODO after: class
-//TODO after: sleep
+//TODO after: class and functions
+//TODO after: sleep (irl)
 
 #include <iostream>
 #include <set>
@@ -15,6 +12,8 @@
 #include <iterator>
 #include <fstream>
 #include <unordered_set>
+#include <cstring>  // Add this at the top with your other includes
+
 // directly implemeted from https://en.wikipedia.org/wiki/CYK_algorithm
 // make sure to convert grammar into chomsky norm form
 
@@ -39,23 +38,27 @@ typedef struct treeNode {
   string currentValue;
 } treeNode;
 
-pair<string, vector<vector<string>>> rules[] = {
-  
-      // {"expression", {{"(","expression_with_)"},{"value", "operator_with_expression:+-"}, 
-      //   {"value","operator_with_expression:*/"}, {"expression", "operator_with_expression:*/"},{"expression", "operator_with_expression:+-"},
-      //   {"1"}, {"2"}, {"3"}, {"4"} , {"5"}, {"6"}, {"7"}, {"8"}
-      // }},
-      // {"expression_with_)", {{"expression",")"}}},
-      // {"operator_with_expression:*/", {{"operator:*/","expression"}}},
-      // {"operator_with_expression:+-", {{"operator:+-","expression"}}},    
-      // {"operator:+-", { {"+"}, {"-"}}},
-      // {"operator:*/", { {"*"}, {"/"}}},        
-      // {"null", {{" "}}}
+vector<pair<string, vector<vector<string>>>> rules = {
+
+      {"S_list_end", {{"S_list", ";"}}},
+      {"S_list", {{"S;", "S_list"}, 
+            {"S;","E"}, {"while(E)", "{S_list;}"},{"if(E)", "{S_list;}"}, {"temp_statement"}, {"var","identifier"},
+            {"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"},{"*","E"}, {"value"}, {"identifier"},
+            {"function:show"},
+            {"identifier","=E"}, {"identifier", "+T"},{"identifier", "-T"}, {"identifier", "*F"},{"identifier", "/F"},
+            {"E", "=E"},
+      }},
 
       {"S;", {{"S", ";"}}},
-      {"S", {{"S;","E"}, {"if(E)", "{S;}"}, {"V","=E"}, {"temp_statement"},
-            {"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"}, {"1"}, {"2"}, {"3"}, {"4"} , {"5"}, {"6"}, {"7"}, {"8"}
+      {"S", {{"S;","E"}, {"while(E)", "{S_list;}"}, {"if(E)", "{S_list;}"}, {"temp_statement"}, {"var","identifier"},
+            {"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"},{"*","E"}, {"value"}, {"identifier"}, {"malloc", "E"}, {"free", "E"}, {"malloc", "E"}, {"free", "E"},
+            {"function:show"},
+            {"identifier","=E"}, {"identifier", "+T"},{"identifier", "-T"}, {"identifier", "*F"},{"identifier", "/F"},
+            {"E", "=E"},
       }},
+
+      {"while(E)", {{"while", "(E)"}}},
+
       {"if(E)", {{"if", "(E)"}}},
       {"=E", {{"=","E"}}},
       {"E;", {{"E", ";"}}},
@@ -63,25 +66,28 @@ pair<string, vector<vector<string>>> rules[] = {
       
       {"{S}", {{"{","S}"}}},
       {"{S;}", {{"{","S;}"}}},
+      {"{S_list;}", {{"{","S_list;}"}}},
       
       {"S}", {{"S", "}"}}},
       {"S;}", {{"S;", "}"}}},
+      {"S_list;}", {{"S_list_end", "}"}}},
+
       {"S;", {{"S", ";"}}},
 
 
-      {"E", {{"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"}, {"1"}, {"2"}, {"3"}, {"4"} , {"5"}, {"6"}, {"7"}, {"8"}}},
+      {"E", {{"E", "+T"},{"E", "-T"}, {"T", "*F"},{"T", "/F"}, {"(", "E)"},{"*","E"}, {"value"}, {"identifier"}, {"malloc", "E"}, {"free", "E"},}},
       {"+T", {{"+", "T"}}},
       {"-T", {{"-", "T"}}},
       {"(E)", {{"(","E)"}}},
       {"E)", {{"E",")"}}},
-
+      
 
       {"*F", {{"*", "F"}}},
       {"/F", {{"/", "F"}}},
 
-      {"T", {{"T","*F"},{"T","/F"}, {"(", "E)"} , {"1"}, {"2"}, {"3"}, {"4"} , {"5"}, {"6"}, {"7"}, {"8"}}},
+      {"T", {{"T","*F"},{"T","/F"}, {"(", "E)"} , {"value"}, {"identifier"}}},
 
-      {"F", {{"(", "E)"},  {"1"}, {"2"}, {"3"}, {"4"} , {"5"}, {"6"}, {"7"}, {"8"}}},      
+      {"F", {{"(", "E)"}, {"value"}, {"identifier"}}},      
 
       {"*", {{"*"}}},
       {"/", {{"/"}}},
@@ -90,23 +96,61 @@ pair<string, vector<vector<string>>> rules[] = {
       {"-", {{"-"}}},
 
       {"if",{{"if"}}},
+      {"while",{{"while"}}},
 
       {"(", {{"("}}},
       {")", {{")"}}},
       {"{", {{"{"}}},
       {"}", {{"}"}}},
-      {";", {{";"}}}
+      {";", {{";"}}},
+      {"=", {{"="}}},
+
+      {"var", {{"var"}}},
+      {"identifier", {{"identifier"}}},
+
+      {"malloc", {{"malloc"}}},
+      {"free", {{"free"}}},
 
     };
 
-string input[] = { "if", "(", "3","-","3", ")", "{" ,"5",";","}", ";"}; // no precedence = 6, precedence = 9
-//string input[] = {"3",";", "5",";"}; // no precedence = 6, precedence = 9
-
+//  string input[] = { "if", "(", "31234","-","31234", ")", "{" ,
+//     "if" , "(", "50","-","50", ")", "{" ,"6969820", ";","}", ";","74", ";",
+//     "}", ";"}; // no precedence = 6, precedence = 9
+// string input[] = {"3","+", "5",";"}; // no precedence = 6, precedence = 9
+// string input[] = { "if", "(", "31234","-","3124", ")", "{" ,"696969",";","}", ";", "1230007", ";"}; // no precedence = 6, precedence = 9
+ //string input[] = {"var", "peter", ";" ,"peter", "=", "3", ";", "peter", "=", "peter", "+", "1000" , ";"
+   //         , "var", "peter2", ";", "peter2", "=", "peter2", "+", "1997" , ";", "peter2", "=" , "peter" ,"+","peter2", ";" ,"peter2","+","peter",";"};
+//string input[] = {"var", "peter", ";", "peter","=","10",";","while", "(", "peter", ")", "{", "peter", "=", "peter", "-", "1", ";", "peter",";","function:show",";" ,"}", ";"};
+//string input[] = {"malloc", "100", ";" };
+vector<string> input;
 unordered_set<string> terminators;
+//string raw_input = "var peter ; peter = malloc 100 ; ( peter ) = 20 ; * peter ; while ( * peter ) { ( peter ) = ( * peter ) - 1 ; if ( * peter ) { function:show ; } ; } ; "; 
+//string raw_input = "var peter ; peter = malloc 100 ; ( peter ) = 20 ; if ( ( * peter ) / 5 ) { function:show ; } ; "; 
+string raw_input = "var peter ; peter = 10 ; peter ;";
 
+std::vector<std::string> parseTokensManual(const std::string& input) {
+    std::vector<std::string> tokens;
+    std::string current_token;
+    
+    for (char c : input) {
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            if (!current_token.empty()) {
+                tokens.push_back(current_token);
+                current_token.clear();
+            }
+        } else {
+            current_token += c;
+        }
+    }
+    
+    // Add the last token if it exists
+    if (!current_token.empty()) {
+        tokens.push_back(current_token);
+    }
+    
+    return tokens;
+}
 
-const int N = size(input);  // 9
-const int R = size(rules);  // 11
 
 void printTreeValues(treeNode* root, int depth = 0) {
   if (root == nullptr) {
@@ -181,7 +225,7 @@ void outputAssembly(vector<string> assembly_code){
   string asm_prefix = R"(; NASM syntax
 bits 32
 section .data
-    msg_format db "The final answer = %d", 0    ; Format string with placeholder
+    msg_format db "EAP register's value = %d", 0    ; Format string with placeholder
     message db 32 dup(0)              ; Buffer for our formatted message
     title db "Assembly Calculation", 0
 
@@ -190,11 +234,17 @@ global start
 extern _MessageBoxA@16               ; stdcall - decorated
 extern wsprintfA                     ; cdecl - no decoration
 extern _ExitProcess@4                ; stdcall - decorated
+extern _GetProcessHeap@0
+extern _HeapAlloc@12
+extern _HeapFree@12
 
-start:
-    ; Perform the calculation
-)";
-  string asm_postfix = R"(
+; Function: show
+; Parameters: eax = number to display
+; Uses cdecl calling convention
+show_function:
+    push ebp            ; Save caller's frame pointer
+    mov ebp, esp        ; Set up our frame pointer
+    
     ; Format the result string using wsprintfA (cdecl calling convention)
     push eax            ; Push the result (13)
     push msg_format     ; Push format string
@@ -208,6 +258,59 @@ start:
     push message        ; Our formatted message
     push 0              ; hWnd
     call _MessageBoxA@16
+    
+    mov esp, ebp        ; Restore stack pointer
+    pop ebp             ; Restore caller's frame pointer
+    ret                 ; Return to caller
+
+; Allocate heap memory
+; Input: element in stack
+; Output: eax = pointer to allocated memory (or 0 if failed)
+malloc:
+    push ebp
+    mov ebp, esp
+    push ebx            ; Save ebx
+    
+    mov ebx, [ebp+8]    ; Get size parameter from stack
+    
+    call _GetProcessHeap@0
+    push ebx            ; Push size
+    push 0              ; Push flags (HEAP_NO_SERIALIZE could be 0x1)
+    push eax            ; Push heap handle
+    call _HeapAlloc@12  ; Allocate memory
+    
+    pop ebx             ; Restore ebx
+    pop ebp
+    ret 4               ; Clean up 4 bytes (size parameter)
+
+; Free heap memory  
+; Input: element in stack as the heap memory location
+free:
+    push ebp
+    mov ebp, esp
+    push ebx            ; Save ebx
+    
+    mov ebx, [ebp+8]    ; Get pointer parameter from stack
+    
+    call _GetProcessHeap@0  ; Get heap handle in eax
+    push ebx            ; Push pointer to free
+    push 0              ; Push flags  
+    push eax            ; Push heap handle
+    call _HeapFree@12   ; Free memory
+    
+    pop ebx             ; Restore ebx
+    pop ebp
+    ret 4               ; Clean up pointer parameter
+
+start:
+    ; Perform the calculation
+    mov ebp, esp
+
+)";
+  string asm_postfix = R"(
+
+
+    call show_function
 
 
     ; Exit program
@@ -231,7 +334,22 @@ start:
     }
 }
 
-bool isInteger(const string& str) {
+void populateTerminators() {
+    for (const auto& rule : rules) {
+        const vector<vector<string>>& productions = rule.second;
+        
+        for (const auto& production : productions) {
+            // If production has only one element, it's a terminal
+            if (production.size() == 1) {
+                terminators.insert(production[0]);
+            }
+        }
+    }
+}
+
+bool isInteger(const string& rule, const string& str) {
+    if (rule!="value") return false;
+
     if (str.empty()) return false;
     
     // Check if all characters are digits
@@ -248,7 +366,8 @@ bool isInteger(const string& str) {
 }
 
 // Function to check if string is a valid identifier
-bool isIdentifier(const string& str) {
+bool isIdentifier(const string& rule, const string& str) {
+    if (rule!="identifier") return false;
     if (str.empty()) return false;
     
     // Check if it starts with a number
@@ -265,29 +384,106 @@ bool isIdentifier(const string& str) {
     return true;
 }
 
+bool handleRules(const string& rule, const string& str){
+   if ((rule == str)&&(str!="value")&&(str!="identifier")) {
+    return true;
+   } else {
+    return (isInteger(rule,str) || isIdentifier(rule, str));
+   }
+}
+
 // left first DFS
 // In-order DFS traversal (left, root, right)
 // seperate the assembly generation as pre left DFS, after left DFS, after right DFS.
 void DFS(treeNode* tree, vector<string> &assembly_code, vector<map<string, string>>& variables) {
+
+    int current_level_use_count; // needed so child wont affect the if_use_count (eg in nested if, the child increment the counter, parent wrongly use the incremented.)
+
     if (tree == nullptr) {
         return;
     }
+
+    // add the high level statement if this is a statement or this is the last component of a S_list (unit production)
+    if ( ( (tree->currentRule.first == "S_list") && (tree->currentRule.second[0] != "S;") )) {
+      // this condition check is a work around since I messed up the Statement syntax, cannot seperate each  statement
+      if ((assembly_code.size() ==0 ) || (assembly_code[assembly_code.size()-1][0]!=';')) {
+        assembly_code.push_back("");
+        assembly_code.push_back("; " + tree->currentValue);
+      }}
+
     if (tree->currentRule.second.size()==1) {
       cout << tree->currentValue << " ";  // Print the current value
       
-      // TODO: add a actual type check (whether it is numerical?) here
-      if (isNumber(tree->currentValue)) {
-        assembly_code.push_back("mov eax, " + tree->currentValue);
-      } 
+        // TODO: add a actual type check (whether it is numerical?) here
+        if (isNumber(tree->currentValue)) {
+          assembly_code.push_back("mov eax, " + tree->currentValue);
+        }
+      
+        // load identifier into register. side effect: fresh initalize will also get loaded, but dont matter actually
+        if (tree->currentRule.first == "identifier") {
+          cout<<"looking for identifier "<<tree->currentValue<<endl;
+          cout<<"variable length: "<< variables.size()<<endl;
+          int count = 0;
+          auto itr = variables.end();
+          bool found = false;
+          map<string, string>::iterator result;
+
+          while (itr != variables.begin()) {
+            itr--;
+            cout<<"traversing!"<<endl;  
+            result = itr->find(tree->currentValue);
+            cout<<"result got"<<endl;
+            if (result != itr->end()) {
+              found = true;
+            }
+            count++;
+          }
+
+          if (found) {
+              assembly_code.push_back("mov eax, ebp ; access the stack frame");        // Move current stack frame pointer (ebp) to EAX
+              for (int i = 1; i < count; i++) {
+                  assembly_code.push_back("mov eax, [eax] ; trace back the stack frame");      // Load value at address in EAX into EAX
+              }
+              assembly_code.push_back("mov eax, [eax" + result->second + "]" + "; load the variable into eax");      // load the value at eax+offset into eax          
+          }
+        }
+
+
+        if (tree->currentRule.second[0] == "function:show") {
+          assembly_code.push_back("call show_function");
+        }
       return;
     }
 
 
-    if (tree->currentRule.first == "{S}") {
+    // enter closure, add new variable set, set pointer to previous pointer.
+    if ((tree->left->currentRule.first == "{")) {
+
+      variables.push_back(map<string, string>());
+      assembly_code.push_back("push ebp          ; Save caller's base pointer");
+      assembly_code.push_back("mov ebp, esp      ; Set up new base pointer");
 
     }
 
+    // initalize variable: by putting the value of right tree (identifer) into the map, noted that differnt statement within a closure shares the same variables set.
+    if (tree->currentRule.second[0] == "var") {
+      string variable_name = tree->right->currentValue;
+      int offset = (variables[variables.size()-1].size() + 1)*4;
+      cout<<"offset is : "<<offset<<"current value is : "<< variable_name<<endl;
+      variables[variables.size()-1].insert({tree->right->currentValue, to_string(-offset)});
+      assembly_code.push_back("push 0");
+    }
 
+    if ((tree->currentRule.second[0]=="while(E)")) {
+      if_used_count++;
+      current_level_use_count = if_used_count;
+      assembly_code.push_back("while_start_" + to_string(current_level_use_count) + ":");
+    }
+          
+
+
+
+    //handle left tree
     ///////////////////////////////////
     DFS(tree->left, assembly_code, variables);
     /////////////////////////////////
@@ -298,23 +494,92 @@ void DFS(treeNode* tree, vector<string> &assembly_code, vector<map<string, strin
     if ((tree->currentRule.second[1]=="+T") || ((tree->currentRule.second[1]=="-T") || (tree->currentRule.second[1]=="*F") || (tree->currentRule.second[1]=="/F"))) {
       assembly_code.push_back("push eax");
     }
-    // handle if by increment if use count, adding a branch checking eax, jumping to the labels defined later
-    if ((tree->currentRule.second[0]=="if(E)")) {
-      if_used_count++;
-      assembly_code.push_back("cmp eax, 0             ; compare with 0");
-      assembly_code.push_back("je if_end_" + to_string(if_used_count));
+
+    if ((tree->currentRule.second[0] == "E") && (tree->currentRule.second[1] == "=E")) {
+      assembly_code.push_back("push eax");
     }
 
+    // 
+    if ((tree->currentRule.second[0]=="if(E)")) {
+      if_used_count++;
+      current_level_use_count = if_used_count;
+      assembly_code.push_back("cmp eax, 0             ; compare with 0");
+      assembly_code.push_back("je if_end_" + to_string(current_level_use_count)); // jump if eax != 0
+    }
+
+    if ((tree->currentRule.second[0]=="while(E)")) {
+      //current level use count incremented before left tree. (for the start label)
+      assembly_code.push_back("cmp eax, 0             ; compare with 0");
+      assembly_code.push_back("je while_end_" + to_string(current_level_use_count)); // jump if eax != 0
+    }
+
+    // handle Right tree
     ////////////////////////////
     DFS(tree->right, assembly_code, variables);
     ///////////////////////////
 
-    // handle if by adding a ending tag here
-    if ((tree->currentRule.second[0]=="if(E)")) {
-      assembly_code.push_back("if_end_" + to_string(if_used_count) + ":");
+    // assign value to variable
+    // assume eap contains the result already. look up identifier in vector of maps, use the #of map to determine how many closure pointers to look back.
+    // then store it directly into the address hardcoded.
+    if ((tree->currentRule.second[0] == "identifier") && (tree->currentRule.second[1] == "=E")) {
+      int count = 0;
+      auto itr = variables.end();
+      bool found = false;
+      map<string, string>::iterator result;
+
+      // for (auto ele:variables){
+      //   for (auto ele2:ele){
+      //     cout<<ele2.first<<" "<<ele2.second<<endl;
+      //   }
+      // }
+
+      while (itr != variables.begin()) {
+        itr--;
+        cout<<"traversing!"<<endl;  
+        result = itr->find(tree->left->currentValue);
+        if (result != itr->end()) {
+          found = true;
+        }
+        count++;
+      }
+
+      if (found) {
+          assembly_code.push_back("mov ebx, eax");
+          assembly_code.push_back("mov eax, ebp; access the stack frame");        // Move current stack frame pointer (ebp) to EAX
+          for (int i = 1; i < count; i++) {
+              assembly_code.push_back("mov eax, [eax]; trace back the stack frame");      // Load value at address in EAX into EAX
+          }  
+          assembly_code.push_back("mov dword [eax" + result->second + "], ebx; store ebx into memory"); // store ebx into memory at (eax + offset)
+        }
     }
 
+    if ((tree->currentRule.second[0] == "E") && (tree->currentRule.second[1] == "=E")) {
+        assembly_code.push_back("mov ebx, eax");
+        assembly_code.push_back("pop eax");
+        
+        assembly_code.push_back("mov dword [eax], ebx"); // store ebx (the right result) into the left address
+    }
 
+    // enter closure, add new variable set, set pointer to previous pointer.
+    if ((tree->left->currentRule.first == "{")) {
+      variables.pop_back();
+      assembly_code.push_back("mov esp, ebp      ; Restore stack pointer");
+      assembly_code.push_back("pop ebp           ; Restore caller's base pointer");
+    }
+
+    // handle if by adding a ending tag here
+    if ((tree->currentRule.second[0]=="if(E)")) {
+      assembly_code.push_back("if_end_" + to_string(current_level_use_count) + ":");
+    }
+    
+    // handle if by adding a ending tag here, but before entering the ending tag, it get jumped to the start condition check
+    if ((tree->currentRule.second[0]=="while(E)")) {
+      assembly_code.push_back("jmp while_start_" + to_string(current_level_use_count));
+      assembly_code.push_back("while_end_" + to_string(current_level_use_count) + ":");
+    }
+
+    // move eax to ebx, so pop back original eax (left hand side result), do calculate and put in eax.
+    // should also compatible for handling variable (since it is an expression)
     if ((tree->currentRule.second[1]=="+T") || (tree->currentRule.second[1]=="-T") || (tree->currentRule.second[1]=="*F") || (tree->currentRule.second[1]=="/F")) {
         assembly_code.push_back("mov ebx, eax");
         assembly_code.push_back("pop eax");
@@ -334,16 +599,32 @@ void DFS(treeNode* tree, vector<string> &assembly_code, vector<map<string, strin
         }
     }
     
+    if (tree->currentRule.second[0] == "malloc") {
+          assembly_code.push_back("push eax");
+          assembly_code.push_back("call malloc");
+    }
+    if (tree->currentRule.second[0] == "free") {
+          assembly_code.push_back("push eax");
+          assembly_code.push_back("call free");
+    }
+    
+    // TODO: bug: when storing value into heap, this wrongly get triggered and load the value instead of address into counter.
+    // get things clear:
+    // peter = 3 => variable assign to 3
+    // *peter = 3 => "heap memory from peter" assign to 3
+    // expression = 3 => "memory" assign to 3
+    // need to distinglish expresion vs identifier QAQ
+    if ((tree->currentRule.second[0] == "*") && (tree->currentRule.second[1] == "E")) {
+      assembly_code.push_back("mov eax, [eax]      ; dereference the address");
+    }
+
     return;
 
     // TODO: update intermediate value (precompute, ignore now)
-    // TODO: define variables
-
-    // 
 }
 
 
-treeNode* recursively_deal(string input[N], queue<triplet<int>> back[N][N][R], pair<string, vector<vector<string>>> rules[R], int start, int end) {
+treeNode* recursively_deal(vector<string> input, queue<triplet<int>> ***back, vector<pair<string, vector<vector<string>>>> rules, int start, int end) {
 
       cout<<"entered start: "<<start<<" end: "<<end<<endl;
 
@@ -356,10 +637,10 @@ treeNode* recursively_deal(string input[N], queue<triplet<int>> back[N][N][R], p
       tree->currentValue = "";
 
       if (i==0) {
-      for (int k=0;k<R;k++){
+      for (int k=0;k<rules.size();k++){
         for (const auto& rhs : rules[k].second) {
-            if (rhs.size() == 1 && rhs[0] == input[start]) {
-                cout << "Terminal match: " << input[start] << " as " << rules[k].first << endl;
+            if (rhs.size() == 1 && handleRules(rhs[0],input[start])) {
+                cout << "Terminal match: " << input[start] << " as " << rules[k].first <<endl;
                 tree->currentRule = {rules[k].first, rhs};
             }
         }
@@ -368,11 +649,11 @@ treeNode* recursively_deal(string input[N], queue<triplet<int>> back[N][N][R], p
       tree->left = NULL;
       tree->right = NULL;
       tree->currentValue =  input[start];
-      cout<<"leaf ready to return"<<endl;
+      cout<<"leaf ready to return, current value is: "<<tree->currentValue<<endl;
       return tree;
       }
 
-      for (int k=0;k<R;k++){
+      for (int k=0;k<rules.size();k++){
         if (!back[i][j][k].empty()) {
           cout<<"\n\n start at "<<j<<" with length "<<i<<":"<< "\n";
         }
@@ -388,6 +669,8 @@ treeNode* recursively_deal(string input[N], queue<triplet<int>> back[N][N][R], p
 
           for (int start = j; start<=i+j;start++){
             cout<<" "<<input[start];
+            tree->currentValue += input[start];
+            tree->currentValue += " ";
             if (start == j+seperator) cout<<" ||| ";
           }
 
@@ -404,15 +687,42 @@ treeNode* recursively_deal(string input[N], queue<triplet<int>> back[N][N][R], p
 };
 
 
-treeNode* convert_into_tree(string input[N], queue<triplet<int>> back[N][N][R], pair<string, vector<vector<string>>> rules[R]) {
+treeNode* convert_into_tree(vector<string> input, queue<triplet<int>> ***back, vector<pair<string, vector<vector<string>>>> rules) {
   treeNode* tree = (treeNode*)malloc(sizeof(treeNode));
-  return recursively_deal(input, back, rules, 0, N-1);
+  return recursively_deal(input, back, rules, 0, input.size()-1);
 }
 
 
 int main(){
-  bool P[N][N][R] = {};
-  queue<triplet<int>> back[N][N][R];
+
+  input = parseTokensManual(raw_input);
+  int N = input.size();
+  int R = rules.size();
+
+  cout<<"enter main\n";
+// Replace bool P[N][N][R] = {};
+bool*** P = (bool***)malloc(N * sizeof(bool**));
+for (int i = 0; i < N; i++) {
+    P[i] = (bool**)malloc(N * sizeof(bool*));
+    for (int j = 0; j < N; j++) {
+        P[i][j] = (bool*)malloc(R * sizeof(bool));
+        // Initialize to false (equivalent to = {})
+        memset(P[i][j], false, R * sizeof(bool));
+    }
+}
+
+// Replace queue<triplet<int>> back[N][N][R];
+queue<triplet<int>>*** back = (queue<triplet<int>>***)malloc(N * sizeof(queue<triplet<int>>**));
+for (int i = 0; i < N; i++) {
+    back[i] = (queue<triplet<int>>**)malloc(N * sizeof(queue<triplet<int>>*));
+    for (int j = 0; j < N; j++) {
+        back[i][j] = (queue<triplet<int>>*)malloc(R * sizeof(queue<triplet<int>>));
+        // Initialize each queue (call constructor)
+        for (int k = 0; k < R; k++) {
+            new(&back[i][j][k]) queue<triplet<int>>();
+        }
+    }
+}
 
 
   map<string, int> m;
@@ -422,14 +732,16 @@ int main(){
     }
   }
 
+  cout<<"populate terminors"<<endl;
+  populateTerminators();
 
 // Terminal productions
 for (int s = 0; s < N; s++) {
     for (int v = 0; v < R; v++) {
         for (const auto& rhs : rules[v].second) {
-            if (rhs.size() == 1 && s < N && (rhs[0] == input[s])|| isInteger() || isIdentifier()) {
+            if (rhs.size() == 1 && s < N && handleRules(rhs[0],input[s])) {
                 P[0][s][v] = true;  // Length 1, starting at position s
-                cout << "Terminal match: " << input[s] << " as " << rules[v].first << endl;
+                cout << "Terminal match: " << input[s] << " as " << rules[v].first << " rule used: "<<rhs[0]<< endl;
             }
         }
     }
@@ -497,40 +809,16 @@ for (int l = 1; l < N; l++) {          // Length of span (0-indexed)
     cout<<"NO\n"<<endl;
     return 1;
   }
-  // for (int i=0;i<N;i++){
-  //   for (int j=0;j<i;j++){
-  //     for (int k=0;k<R;k++){
-
-  //       if (!back[i][j][k].empty()) {
-  //         cout<<"\n\n start at "<<j<<" with length "<<i<<":"<< "\n";
-  //       }
-
-  //       int seperator = 0;
-  //       while (!back[i][j][k].empty()){
-  //         struct triplet<int> path = back[i][j][k].top();
-  //         cout<<"path: "<<path.first<<" "<<path.second<<" "<<path.third<<" rules: "<<rules[path.fifth].first<<" "<<path.fourth[0]<<" "<<path.fourth[1];
-  //         seperator = path.first;
-  //         back[i][j][k].pop();
-
-  //         for (int start = j; start<=i+j;start++){
-  //           cout<<" "<<input[start];
-  //           if (start == j+seperator) cout<<" ||| ";
-  //         }
-
-  //         cout<<" , character inex: "<<k<<" character: "<<rules[k].first<<endl;
-  //         cout<<endl;
-  //       }
-
-  //     }
-  //   }
-  // }
 
   vector<string> assembly_code;
+  vector<map<string, string>> variables;
+  variables.push_back(map<string, string>());
+
   treeNode *tree = convert_into_tree(input, back, rules);
-  DFS(tree, assembly_code);
+  cout<<"start generating assembly: \n";
+  DFS(tree, assembly_code, variables);
 
   printTreeValues(tree);
-
   outputAssembly(assembly_code);
 
 
