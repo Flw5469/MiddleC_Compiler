@@ -1,0 +1,1 @@
+g++ -o ./build/cfg ./src/cfg.cpp

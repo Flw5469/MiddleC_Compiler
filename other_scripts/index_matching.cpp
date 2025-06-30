@@ -1,3 +1,6 @@
+// used to match the indices since I chose 0-index instead of 1-index in CYK algorithm
+// lesson learnt: stick to the design, dont try to be smart in unneccessary parts.
+
 #include <iostream>
 using namespace std;
 const int N = 10;

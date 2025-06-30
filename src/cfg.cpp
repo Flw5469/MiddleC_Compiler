@@ -324,7 +324,7 @@ start:
     asm_content+=asm_postfix;
 
 
-    ofstream file("output.asm");
+    ofstream file("build/output/output.asm");
     if (file.is_open()) {
         file << asm_content;
         file.close();
@@ -683,6 +683,8 @@ treeNode* recursively_deal(vector<string> input, queue<triplet<int>> ***back, ve
           return tree;
         }
       }
+
+      return tree;
 
 };
 
