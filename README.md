@@ -70,7 +70,7 @@ free ptr;
 ### Complete Workflow
 
 ## Project Structure
-C:.
+```
 │  build.bat
 │  build_and_run.bat
 │  makefile
@@ -86,30 +86,7 @@ C:.
 │          output.obj
 │
 ├─dependencies
-│  │  Goasm.zip
-│  │  Golink.zip
-│  │  Gorc.zip
-│  │  nasm-2.16.03-installer-x64.exe
-│  │
-│  ├─Goasm
-│  │      AdaptAsm21.zip
-│  │      forhelp.txt
-│  │      GoAsm.chm
-│  │      GoAsm.exe
-│  │
-│  ├─Golink
-│  │      GoLink.exe
-│  │      GoLink.htm
-│  │      GoLogo50.gif
-│  │      mail6sblue.gif
-│  │      up.gif
-│  │
-│  └─Gorc
-│          GoLogo50.gif
-│          GoRC.exe
-│          GoRC.htm
-│          mail6sblue.gif
-│          up.gif
+│
 │
 ├─documentation
 │      AST_example.png
@@ -122,27 +99,23 @@ C:.
 │      test.s
 │
 ├─src
-│  │  assembly.cpp
-│  │  cyk.cpp
-│  │  helper_functions.cpp
-│  │  main.cpp
-│  │  parsing.cpp
-│  │  rules.cpp
-│  │  structures.cpp
-│  │  testing.cpp
-│  │  testing.exe
-│  │  tree_functions.cpp
-│  │
-│  └─.vscode
-│          c_cpp_properties.json
-│          settings.json
+│     assembly.cpp
+│     cyk.cpp
+│     helper_functions.cpp
+│     main.cpp
+│     parsing.cpp
+│     rules.cpp
+│     structures.cpp
+│     testing.cpp
+│     testing.exe
+│     tree_functions.cpp
 │
 ├─unit_test
 └─utilities
         asm_postfix.txt
         asm_prefix.txt
         input.txt
-
+```
 
 ## Algorithm Details
 
