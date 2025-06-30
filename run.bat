@@ -1,9 +1,9 @@
 @echo off
-echo Compilation successful! Running cfg.exe...
-echo About to run: .\build\cfg.exe
-.\build\cfg.exe
+echo Compilation successful! Running main.exe...
+echo About to run: .\build\main.exe
+.\build\main.exe
 if errorlevel 1 (
-    echo cfg.exe returned an error!
+    echo main.exe returned an error!
     pause
     exit /b 1
 )

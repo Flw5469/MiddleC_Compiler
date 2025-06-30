@@ -1,1 +1,1 @@
-g++ -o ./build/cfg ./src/cfg.cpp
+g++ -o ./build/main ./src/main.cpp

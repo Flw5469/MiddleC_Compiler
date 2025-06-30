@@ -80,25 +80,4 @@ free:
 
 start:
     ; Perform the calculation
-    mov ebp, esp    
-    ; var peter 
-    push 0
-    mov eax, ebp ; access the stack frame
-    mov eax, [eax-4]; load the variable into eax
-    
-    ; peter = 10 
-    mov eax, ebp ; access the stack frame
-    mov eax, [eax-4]; load the variable into eax
-    mov eax, 10
-    mov ebx, eax
-    mov eax, ebp; access the stack frame
-    mov dword [eax-4], ebx; store ebx into memory
-    mov eax, ebp ; access the stack frame
-    mov eax, [eax-4]; load the variable into eax
-
-    call show_function
-
-
-    ; Exit program
-    push 0              ; Exit code
-    call _ExitProcess@4
+    mov ebp, esp

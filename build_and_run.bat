@@ -1,5 +1,5 @@
 @echo off
-echo Step 1: Compiling cfg.cpp...
+echo Step 1: Compiling main.cpp...
 call build.bat
 echo Build.bat exit code: %errorlevel%
 if errorlevel 1 (
@@ -9,10 +9,10 @@ if errorlevel 1 (
 )
 
 echo Compilation successful! Running the flow
-echo About to run: .\build\cfg.exe
-.\build\cfg.exe
+echo About to run: .\build\main.exe
+.\build\main.exe
 if errorlevel 1 (
-    echo cfg.exe returned an error!
+    echo main.exe returned an error!
     pause
     exit /b 1
 )

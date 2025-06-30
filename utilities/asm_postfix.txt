@@ -1,0 +1,7 @@
+
+    call show_function
+
+
+    ; Exit program
+    push 0              ; Exit code
+    call _ExitProcess@4
