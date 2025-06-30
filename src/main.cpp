@@ -34,6 +34,7 @@ int main(){
   
   cout<<"enter main\n";
 
+  string raw_input = loadFileAsString("utilities/input.txt");
   input = parseTokensManual(raw_input);
 
   vector<string> assembly_code;
@@ -43,7 +44,7 @@ int main(){
   queue<triplet<int>>*** back;
   if (cyk(input,rules,terminators,back) == -1) {
     cout<<"NO"<<endl;
-    return -1;
+    return 1;
   } else {
     cout<<"YES"<<endl;
   }

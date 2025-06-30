@@ -4,6 +4,8 @@
 #include "helper_functions.cpp"
 #include <fstream>
 #include <sstream>
+#include <filesystem>  // Add this include
+
 using namespace std;
 
 void displayAssembly(vector<string> assembly_code){
@@ -23,7 +25,7 @@ void outputAssembly(vector<string> assembly_code){
     }
     asm_content+=asm_postfix;
 
-
+    std::filesystem::create_directories("build/output");
     ofstream file("build/output/output.asm");
     if (file.is_open()) {
         file << asm_content;

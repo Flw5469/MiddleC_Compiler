@@ -16,6 +16,7 @@
 
 
 void printTreeValues(treeNode* root, int depth = 0) {
+
   if (root == nullptr) {
     return;
   }
@@ -289,7 +290,7 @@ void DFS(treeNode* tree, vector<string> &assembly_code, vector<map<string, strin
 }
 
 
-treeNode* recursively_deal(vector<string> input, queue<triplet<int>> ***back, vector<pair<string, vector<vector<string>>>> rules, int start, int end, unordered_set<string> terminators) {
+treeNode* recursively_deal(vector<string> input, queue<triplet<int>> ***& back, vector<pair<string, vector<vector<string>>>> rules, int start, int end, unordered_set<string> terminators) {
 
       cout<<"entered start: "<<start<<" end: "<<end<<endl;
 
@@ -354,8 +355,7 @@ treeNode* recursively_deal(vector<string> input, queue<triplet<int>> ***back, ve
 };
 
 
-treeNode* convert_into_tree(vector<string> input, queue<triplet<int>> ***back, vector<pair<string, vector<vector<string>>>> rules, unordered_set<string> terminators) {
-  treeNode* tree = (treeNode*)malloc(sizeof(treeNode));
+treeNode* convert_into_tree(vector<string> input, queue<triplet<int>> ***&back, vector<pair<string, vector<vector<string>>>> rules, unordered_set<string> terminators) {
   return recursively_deal(input, back, rules, 0, input.size()-1, terminators);
 }
 

@@ -86,15 +86,43 @@ start:
     mov eax, ebp ; access the stack frame
     mov eax, [eax-4]; load the variable into eax
     
-    ; peter = 10 
+    ; peter = malloc 100 
     mov eax, ebp ; access the stack frame
     mov eax, [eax-4]; load the variable into eax
-    mov eax, 10
+    mov eax, 100
+    push eax
+    call malloc
     mov ebx, eax
     mov eax, ebp; access the stack frame
     mov dword [eax-4], ebx; store ebx into memory
+    
+    ; ( peter ) = 20 
     mov eax, ebp ; access the stack frame
     mov eax, [eax-4]; load the variable into eax
+    push eax
+    mov eax, 20
+    mov ebx, eax
+    pop eax
+    mov dword [eax], ebx
+    
+    ; if ( ( * peter ) / 5 ) { function:show ; } 
+    mov eax, ebp ; access the stack frame
+    mov eax, [eax-4]; load the variable into eax
+    mov eax, [eax]      ; dereference the address
+    push eax
+    mov eax, 5
+    mov ebx, eax
+    pop eax
+    cdq
+    idiv ebx
+    cmp eax, 0             ; compare with 0
+    je if_end_1
+    push ebp          ; Save caller's base pointer
+    mov ebp, esp      ; Set up new base pointer
+    call show_function
+    mov esp, ebp      ; Restore stack pointer
+    pop ebp           ; Restore caller's base pointer
+    if_end_1:
 
     call show_function
 

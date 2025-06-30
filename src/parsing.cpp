@@ -16,7 +16,7 @@ using namespace std;
 //string raw_input = "var peter ; peter = malloc 100 ; ( peter ) = 20 ; if ( ( * peter ) / 5 ) { function:show ; } ; "; 
 
 
-string raw_input = "var peter ; peter = 10 ; peter ;";
+//string raw_input = "var peter ; peter = 10 ; peter ;";
 
 std::vector<std::string> parseTokensManual(const std::string& input) {
     std::vector<std::string> tokens;
@@ -39,4 +39,41 @@ std::vector<std::string> parseTokensManual(const std::string& input) {
     }
     
     return tokens;
+}
+
+vector<string> parseTokensManual_v2(const std::string& input){
+    std::vector<std::string> tokens;
+    std::string current_token;
+    
+    for (char c : input) {
+        // Check if it's whitespace
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            if (!current_token.empty()) {
+                tokens.push_back(current_token);
+                current_token.clear();
+            }
+        }
+        // Check if it's a special character that should be tokenized
+        else if (c == ';' || c == '+' || c == '-' || c == '*' || c == '/' || 
+                 c == '{' || c == '}' || c == '(' || c == ')' || c == '=') {
+            // First, push any accumulated token
+            if (!current_token.empty()) {
+                tokens.push_back(current_token);
+                current_token.clear();
+            }
+            // Then push the special character as its own token
+            tokens.push_back(string(1, c));  // Convert char to string
+        }
+        // Regular character - add to current token
+        else {
+            current_token += c;
+        }
+    }
+    
+    // Add the last token if it exists
+    if (!current_token.empty()) {
+        tokens.push_back(current_token);
+    }
+    
+    return tokens;  // You were missing this!
 }

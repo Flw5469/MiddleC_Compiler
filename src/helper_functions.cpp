@@ -35,7 +35,7 @@ bool isNumber(string str) {
     return true;
 }
 
-void populateTerminators(unordered_set<string> terminators, vector<pair<string, vector<vector<string>>>> rules) {
+void populateTerminators(unordered_set<string> &terminators, vector<pair<string, vector<vector<string>>>> rules) {
     for (const auto& rule : rules) {
         const vector<vector<string>>& productions = rule.second;
         

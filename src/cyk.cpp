@@ -13,7 +13,7 @@
 #include "structures.cpp"
 using namespace std;
 
-void terminal_production(int N, int R, std::vector<std::string> input, vector<pair<string, vector<vector<string>>>> rules, unordered_set<string> terminators, bool*** P){
+void terminal_production(int N, int R, std::vector<std::string> input, vector<pair<string, vector<vector<string>>>> rules, unordered_set<string> &terminators, bool*** P){
   for (int s = 0; s < N; s++) {
     for (int v = 0; v < R; v++) {
         for (const auto& rhs : rules[v].second) {
@@ -26,7 +26,7 @@ void terminal_production(int N, int R, std::vector<std::string> input, vector<pa
   }
 }
 
-void binary_production(int N, int R, std::vector<std::string> input, vector<pair<string, vector<vector<string>>>> rules, unordered_set<string> terminators, bool*** P, map<string, int> m, queue<triplet<int>>*** back){
+void binary_production(int N, int R, std::vector<std::string> input, vector<pair<string, vector<vector<string>>>> rules, unordered_set<string> &terminators, bool*** P, map<string, int> m, queue<triplet<int>>***& back){
   for (int l = 1; l < N; l++) {          // Length of span (0-indexed)
       for (int s = 0; s < N-l; s++) {    // Start of span (0-indexed)
 
@@ -84,7 +84,7 @@ void binary_production(int N, int R, std::vector<std::string> input, vector<pair
 }
 
 
-int cyk(std::vector<std::string> input, vector<pair<string, vector<vector<string>>>> rules, unordered_set<string> terminators, queue<triplet<int>>*** back){
+int cyk(std::vector<std::string> input, vector<pair<string, vector<vector<string>>>> rules, unordered_set<string> terminators, queue<triplet<int>>***& back){
   int N = input.size();
   int R = rules.size();
 
@@ -131,5 +131,5 @@ int cyk(std::vector<std::string> input, vector<pair<string, vector<vector<string
 
 
   cout<<"answer: "<<P[N-1][0][0]<<endl;
-  return P[N-1][0][0] ? 0 : 1;
+  return P[N-1][0][0] ? 0 : -1;
 }
