@@ -1,6 +1,5 @@
-//TODO after: array and type check
+//TODO after: type check
 //TODO after: class and functions
-//TODO after: sleep (irl)
 
 #include <iostream>
 #include <set>

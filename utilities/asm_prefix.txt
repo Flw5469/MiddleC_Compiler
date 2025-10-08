@@ -1,83 +1,141 @@
-; NASM syntax
-bits 32
 section .data
-    msg_format db "EAP register's value = %d", 0    ; Format string with placeholder
-    message db 32 dup(0)              ; Buffer for our formatted message
-    title db "Assembly Calculation", 0
+    msg_format db "EAP register's value = ", 0
+    newline db 10, 0
+    digits db "0123456789", 0
+
+section .bss
+    heap_space resb 1024    ; Our static "heap" - 1024 bytes
+    heap_ptr resd 1         ; Pointer to next free space
+    number_str resb 12      ; Buffer for number-to-string conversion
 
 section .text
-global start
-extern _MessageBoxA@16               ; stdcall - decorated
-extern wsprintfA                     ; cdecl - no decoration
-extern _ExitProcess@4                ; stdcall - decorated
-extern _GetProcessHeap@0
-extern _HeapAlloc@12
-extern _HeapFree@12
+global _start
 
-; Function: show
-; Parameters: eax = number to display
-; Uses cdecl calling convention
-show_function:
-    push ebp            ; Save caller's frame pointer
-    mov ebp, esp        ; Set up our frame pointer
-    
-    ; Format the result string using wsprintfA (cdecl calling convention)
-    push eax            ; Push the result (13)
-    push msg_format     ; Push format string
-    push message        ; Push destination buffer
-    call wsprintfA      ; Call wsprintfA
-    add esp, 12         ; Clean up stack (caller cleans for cdecl)
-    
-    ; Show message box with the result
-    push 0              ; MB_OK
-    push title          ; Title
-    push message        ; Our formatted message
-    push 0              ; hWnd
-    call _MessageBoxA@16
-    
-    mov esp, ebp        ; Restore stack pointer
-    pop ebp             ; Restore caller's frame pointer
-    ret                 ; Return to caller
-
-; Allocate heap memory
-; Input: element in stack
-; Output: eax = pointer to allocated memory (or 0 if failed)
+; Simple malloc using static allocation
 malloc:
     push ebp
     mov ebp, esp
-    push ebx            ; Save ebx
     
-    mov ebx, [ebp+8]    ; Get size parameter from stack
+    ; Initialize heap pointer if first call
+    cmp dword [heap_ptr], 0
+    jne heap_initialized
+    mov dword [heap_ptr], heap_space
     
-    call _GetProcessHeap@0
-    push ebx            ; Push size
-    push 0              ; Push flags (HEAP_NO_SERIALIZE could be 0x1)
-    push eax            ; Push heap handle
-    call _HeapAlloc@12  ; Allocate memory
+heap_initialized:
+    mov eax, [heap_ptr]     ; Get current heap position
+    mov ebx, [ebp+8]        ; Get size parameter from stack
+    add [heap_ptr], ebx     ; Advance heap pointer
     
-    pop ebx             ; Restore ebx
     pop ebp
-    ret 4               ; Clean up 4 bytes (size parameter)
+    ret 4                   ; Clean up stack (remove size parameter)
 
-; Free heap memory  
-; Input: element in stack as the heap memory location
+; Simple free (does nothing in this implementation)
 free:
     push ebp
     mov ebp, esp
-    push ebx            ; Save ebx
-    
-    mov ebx, [ebp+8]    ; Get pointer parameter from stack
-    
-    call _GetProcessHeap@0  ; Get heap handle in eax
-    push ebx            ; Push pointer to free
-    push 0              ; Push flags  
-    push eax            ; Push heap handle
-    call _HeapFree@12   ; Free memory
-    
-    pop ebx             ; Restore ebx
     pop ebp
-    ret 4               ; Clean up pointer parameter
+    ret 4
 
-start:
-    ; Perform the calculation
+; Convert number in eax to string in number_str
+; Returns: eax = pointer to string
+number_to_string:
+    push ebp
+    mov ebp, esp
+    push ebx
+    push ecx
+    push edx
+    push edi
+    
+    mov edi, number_str + 11    ; Point to end of buffer
+    mov byte [edi], 0           ; Null terminate
+    dec edi
+    mov ecx, 10                 ; Base 10
+    
+    ; Handle zero case
+    test eax, eax
+    jnz convert_loop
+    mov byte [edi], '0'
+    mov eax, edi                ; Return pointer to '0' directly!
+    jmp done_zero               ; Skip the inc edi
+    
+convert_loop:
+    xor edx, edx
+    div ecx                     ; Divide by 10
+    add dl, '0'                 ; Convert remainder to ASCII
+    mov [edi], dl
+    dec edi
+    test eax, eax
+    jnz convert_loop
+    
+convert_done:
+    inc edi                     ; Point to first digit
+    mov eax, edi                ; Return pointer to string
+    
+done_zero:
+    pop edi
+    pop edx
+    pop ecx
+    pop ebx
+    pop ebp
+    ret
+
+; Print null-terminated string
+; Input: string address on stack
+print_string:
+    push ebp
+    mov ebp, esp
+    push ebx
+    push ecx
+    push edx
+    
+    mov ecx, [ebp+8]    ; String address
+    mov edx, 0          ; Calculate length
+    mov ebx, ecx
+    
+strlen_loop:
+    cmp byte [ebx], 0
+    je strlen_done
+    inc ebx
+    inc edx
+    jmp strlen_loop
+    
+strlen_done:
+    ; Write system call
+    mov eax, 4          ; sys_write
+    mov ebx, 1          ; stdout
+    int 0x80
+    
+    pop edx
+    pop ecx
+    pop ebx
+    pop ebp
+    ret 4
+
+; Function: show
+; Parameters: eax = number to display
+show_function:
+    push ebp
+    mov ebp, esp
+    push eax            ; Save the number
+    push eax
+
+    ; Print "EAP register's value = "
+    push msg_format
+    call print_string
+    
+    ; Convert number to string and print it
+    pop eax             ; Restore the number
+    call number_to_string
+    push eax
+    call print_string
+    
+    ; Print newline
+    push newline
+    call print_string
+    
+    pop eax
+    pop ebp
+    ret
+
+_start:
     mov ebp, esp

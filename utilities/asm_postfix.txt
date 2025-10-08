@@ -1,7 +1,6 @@
-
     call show_function
-
-
+    
     ; Exit program
-    push 0              ; Exit code
-    call _ExitProcess@4
+    mov eax, 1                  ; sys_exit
+    mov ebx, 0                  ; exit status
+    int 0x80
